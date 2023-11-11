@@ -2,6 +2,14 @@
   <section class="container">
     <div class="filter-header-wrapper">
       <h1 class="filter-header">Spell List</h1>
+      <filter-input
+        id="filter-spells"
+        ref="filter"
+        class="filter"
+        placeholder="Filter spells..."
+        @input="updateFilter"
+        @keyup.enter="onFilterEnter"
+      />
     </div>
     <PageNav
       @first="pageNumber = 0"
@@ -46,7 +54,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="spell in spellsListed" :key="spell.slug">
+          <tr v-for="spell in filteredSpells" :key="spell.slug">
             <th>
               <nuxt-link
                 tag="a"
@@ -101,104 +109,117 @@
   </section>
 </template>
 
-<script>
+<script setup>
+// COMPONENTS
 import FilterInput from '~/components/FilterInput.vue';
 import PageNav from '~/components/PageNav.vue';
 import SourceTag from '~/components/SourceTag.vue';
-import { useMainStore } from '~/store';
 
-export default {
-  components: {
-    PageNav,
-    SourceTag,
+// LIBRARIES
+import { useMainStore } from '~/store';
+import { ref, computed, onMounted } from 'vue';
+
+const store = useMainStore();
+
+// VARIABLES
+let displayFilters = ref(false);
+let filter = ref('');
+let currentSortProperty = ref('name');
+let currentSortDir = ref('ascending');
+let pageNumber = ref(0);
+
+// COMPUTED PROPERTIES
+const pageCount = computed(() => {
+  return Math.ceil(spells.value.length / 50);
+});
+
+const spells = computed(() => {
+  return store.allSpells;
+});
+
+const spellsListed = computed({
+  get: function () {
+    let start = pageNumber.value * 50;
+    let end = start + 50;
+    return filteredSpells.value.slice(start, end);
   },
-  setup() {
-    const store = useMainStore();
-    return { store };
-  },
-  data() {
-    return {
-      filter: '',
-      currentSortProperty: 'name',
-      currentSortDir: 'ascending',
-      pageNumber: 0,
-    };
-  },
-  computed: {
-    pageCount() {
-      return Math.ceil(this.spells.length / 50);
-    },
-    spells: function () {
-      return this.store.allSpells;
-    },
-    spellsListed: {
-      get: function () {
-        let start = this.pageNumber * 50;
-        let end = start + 50;
-        return this.filteredSpells.slice(start, end);
-      },
-      set: function () {
-        return this.filteredSpells.sort((a, b) => {
-          let modifier = 1;
-          if (this.currentSortDir === 'descending') {
-            modifier = -1;
-          }
-          if (a[this.currentSortProperty] < b[this.currentSortProperty]) {
-            return -1 * modifier;
-          }
-          if (a[this.currentSortProperty] > b[this.currentSortProperty]) {
-            return 1 * modifier;
-          }
-          return 0;
-        });
-      },
-    },
-    filteredSpells: function () {
-      return this.spells.filter((spell) => {
-        return spell.name.toLowerCase().indexOf(this.filter.toLowerCase()) > -1;
-      });
-    },
-    ariaSort: function () {
-      return {
-        name: this.getAriaSort('name'),
-        school: this.getAriaSort('school'),
-        level_int: this.getAriaSort('level_int'),
-        components: this.getAriaSort('components'),
-      };
-    },
-  },
-  mounted() {
-    this.store.loadSpells();
-  },
-  methods: {
-    updateFilter: function (val) {
-      this.filter = val;
-    },
-    spellListLength: function () {
-      return Object.keys(this.spellsListed).length;
-    },
-    capitalize(str) {
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    },
-    sort: function (prop, dir) {
-      this.currentSortProperty = prop;
-      this.currentSortDir = dir;
-      this.spellsListed = {};
-    },
-    onFilterEnter: function () {
-      this.$refs.results.focus();
-    },
-    focusFilter: function () {
-      this.$refs.filter.$refs.input.focus();
-    },
-    getAriaSort(columName) {
-      if (this.currentSortProperty === columName) {
-        return this.currentSortDir === 'ascending' ? 'ascending' : 'descending';
+  set: function () {
+    console.log(filteredSpells);
+    return filteredSpells.value.sort((a, b) => {
+      let modifier = 1;
+      if (currentSortDir.value === 'descending') {
+        modifier = -1;
       }
-      return null;
-    },
+      if (a[currentSortProperty.value] < b[currentSortProperty.value]) {
+        return -1 * modifier;
+      }
+      if (a[currentSortProperty.value] > b[currentSortProperty.value]) {
+        return 1 * modifier;
+      }
+      return 0;
+    });
   },
-};
+});
+
+const ariaSort = computed(() => {
+  return {
+    name: getAriaSort('name'),
+    school: getAriaSort('school'),
+    level_int: getAriaSort('level_int'),
+    components: getAriaSort('components'),
+  };
+});
+
+onMounted(() => {
+  store.loadSpells();
+});
+
+// METHODS
+const filteredSpells = computed(() => {
+  console.log(filter.value);
+  return spells.value;
+  // if (filter.value == ""){
+  //   return spells.value
+  // }
+  // else {
+  //   return spells.value.filter((spell) => {
+  //     return spell.name.toLowerCase().inclues(filter.value.toLowerCase())
+  //   });
+  // }
+});
+
+// function updateFilter(val) {
+//   filter.value = val;
+// }
+
+// function spellListLength() {
+//   return Object.keys(spellsListed.value).length;
+// }
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function sort(prop, dir) {
+  currentSortProperty.value = prop;
+  currentSortDir.value = dir;
+  spellsListed.value = {};
+}
+
+// function onFilterEnter() {
+//   $refs.results.focus();
+// }
+
+// function focusFilter() {
+//     $refs.filter.$refs.input.focus();
+// }
+
+function getAriaSort(columName) {
+  if (currentSortProperty.value === columName) {
+    return currentSortDir.value === 'ascending' ? 'ascending' : 'descending';
+  }
+  return null;
+}
 </script>
 
 <style scoped lang="scss">
