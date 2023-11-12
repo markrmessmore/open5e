@@ -8,10 +8,12 @@
       @last="pageNumber = pageCount - 1"
       @next="pageNumber++"
       @prev="pageNumber--"
+      @changePerPage="setPerPage"
       :listLength="filteredSpells.length"
       listWording="spells listed."
       :pageNumber="pageNumber"
       :pageCount="pageCount"
+      :showItemsPerPage="true"
     ></PageNav>
     <div>
       <p v-if="!spells.length">Loading...</p>
@@ -97,6 +99,7 @@
       listWording="spells listed."
       :pageNumber="pageNumber"
       :pageCount="pageCount"
+      :showItemsPerPage="false"
     ></PageNav>
   </section>
 </template>
@@ -116,11 +119,12 @@ const store = useMainStore();
 let filter = ref('');
 let currentSortProperty = ref('name');
 let currentSortDir = ref('ascending');
+let itemsPerPage = ref(50);
 let pageNumber = ref(0);
 
 // COMPUTED PROPERTIES
 const pageCount = computed(() => {
-  return Math.ceil(spells.value.length / 50);
+  return Math.ceil(spells.value.length / itemsPerPage.value);
 });
 
 const spells = computed(() => {
@@ -129,8 +133,8 @@ const spells = computed(() => {
 
 const spellsListed = computed({
   get: function () {
-    let start = pageNumber.value * 50;
-    let end = start + 50;
+    let start = pageNumber.value * itemsPerPage.value;
+    let end = start + itemsPerPage.value;
     return filteredSpells.value.slice(start, end);
   },
   set: function () {
@@ -169,6 +173,9 @@ const filteredSpells = computed(() => {
   return spells.value;
 });
 
+function setPerPage(num) {
+  itemsPerPage.value = num;
+}
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
