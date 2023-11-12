@@ -2,14 +2,6 @@
   <section class="container">
     <div class="filter-header-wrapper">
       <h1 class="filter-header">Spell List</h1>
-      <filter-input
-        id="filter-spells"
-        ref="filter"
-        class="filter"
-        placeholder="Filter spells..."
-        @input="updateFilter"
-        @keyup.enter="onFilterEnter"
-      />
     </div>
     <PageNav
       @first="pageNumber = 0"
@@ -54,7 +46,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="spell in filteredSpells" :key="spell.slug">
+          <tr v-for="spell in spellsListed" :key="spell.slug">
             <th>
               <nuxt-link
                 tag="a"
@@ -111,7 +103,6 @@
 
 <script setup>
 // COMPONENTS
-import FilterInput from '~/components/FilterInput.vue';
 import PageNav from '~/components/PageNav.vue';
 import SourceTag from '~/components/SourceTag.vue';
 
@@ -122,7 +113,6 @@ import { ref, computed, onMounted } from 'vue';
 const store = useMainStore();
 
 // VARIABLES
-let displayFilters = ref(false);
 let filter = ref('');
 let currentSortProperty = ref('name');
 let currentSortDir = ref('ascending');
@@ -144,8 +134,7 @@ const spellsListed = computed({
     return filteredSpells.value.slice(start, end);
   },
   set: function () {
-    console.log(filteredSpells);
-    return filteredSpells.value.sort((a, b) => {
+    return filteredSpells().value.sort((a, b) => {
       let modifier = 1;
       if (currentSortDir.value === 'descending') {
         modifier = -1;
@@ -178,23 +167,7 @@ onMounted(() => {
 const filteredSpells = computed(() => {
   console.log(filter.value);
   return spells.value;
-  // if (filter.value == ""){
-  //   return spells.value
-  // }
-  // else {
-  //   return spells.value.filter((spell) => {
-  //     return spell.name.toLowerCase().inclues(filter.value.toLowerCase())
-  //   });
-  // }
 });
-
-// function updateFilter(val) {
-//   filter.value = val;
-// }
-
-// function spellListLength() {
-//   return Object.keys(spellsListed.value).length;
-// }
 
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -205,14 +178,6 @@ function sort(prop, dir) {
   currentSortDir.value = dir;
   spellsListed.value = {};
 }
-
-// function onFilterEnter() {
-//   $refs.results.focus();
-// }
-
-// function focusFilter() {
-//     $refs.filter.$refs.input.focus();
-// }
 
 function getAriaSort(columName) {
   if (currentSortProperty.value === columName) {
